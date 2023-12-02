@@ -63,8 +63,8 @@ int main (int argc, char *argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
 	if(taskid == 0) {
 		// setup the thread data blocks
-		for(int i = 1; i != 10; ++i) {
-			tdb[i] = {0,0,0};
+		for(uint64_t i = 1; i != 10; ++i) {
+			tdb[i] = {(int)i, i*10, 0};
 			MPI_Send(&tdb[0]+i, 1, Tdtype, i, 123, MPI_COMM_WORLD);
 		}
 		
@@ -73,9 +73,11 @@ int main (int argc, char *argv[])
 		MPI_Status status;
 		Tdstruct local;
 		MPI_Recv(&local, 1, Tdtype, 0, 123, MPI_COMM_WORLD, &status);
-		cout << taskid << ") received data." << endl;
+		local.result = local.n + taskid;
+		cout << taskid << ") received data." << " result:" << local.result << endl;
+		
 	}
-	MPI_Finalize();
+	MPI_Finalize();	// Eliminates -> make: *** [makefile:16: run] Error 1
 	return 0;
 }
 

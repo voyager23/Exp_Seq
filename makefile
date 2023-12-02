@@ -1,9 +1,11 @@
 # Makefile for exp_seq folder
 
+TARGET=bdev
+
 .PHONY: run
 
-bdev: bdev.cxx
-	mpic++ -std=c++17 -Wall -Wno-unused-variable -g -fpermissive bdev.cxx -o ./bdev
+$(TARGET): $(TARGET).cxx
+	mpic++ -std=c++17 -Wall -Wno-unused-variable -g -fpermissive $(TARGET).cxx -o ./$(TARGET)
 	./sync_wdir.sh
 
 adev: adev.cxx
