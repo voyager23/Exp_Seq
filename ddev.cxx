@@ -1,5 +1,5 @@
 /*
- * cdev.cxx
+ * ddev.cxx
  * 
  * Copyright 2023 mike <mike@Fedora37>
  * 
@@ -72,20 +72,26 @@ int main (int argc, char *argv[])
 		MPI_Scatter(primes.data()+r, primes.size() / numtasks, MPI_UINT64_T,\
 		local_p.data()+r, primes.size() / numtasks, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 		
-		// debug printout
-		cout << taskid << ") received data. ";
-		for(auto i : local_p) cout << i << " ";
-		cout << endl;
-			
+		//~ // debug printout
+		//~ cout << taskid << ") received data. ";
+		//~ for(auto i : local_p) cout << i << " ";
+		//~ cout << endl;
+		
+		// using the received data calc the value of a[n]
+		
 	} else { // Node
 		MPI_Status status;
 		vector<uint64_t> nodeprime;
 		nodeprime.resize(primes.size() / numtasks);
 		MPI_Scatter(primes.data(), primes.size() / numtasks, MPI_UINT64_T,\
-		nodeprime.data(), primes.size() / numtasks, MPI_UINT64_T, 0, MPI_COMM_WORLD);		
-		cout << taskid << ") received data.";
-		for(auto i : nodeprime) cout << i << " ";
-		cout << endl;		
+		nodeprime.data(), primes.size() / numtasks, MPI_UINT64_T, 0, MPI_COMM_WORLD);
+				
+		//~ cout << taskid << ") received data.";
+		//~ for(auto i : nodeprime) cout << i << " ";
+		//~ cout << endl;
+		
+		// using the received data calc the value of a[n]
+		
 	}
 	MPI_Finalize();	// Eliminates -> make: *** [makefile:16: run] Error 1
 	return 0;
