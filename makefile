@@ -1,6 +1,6 @@
 # Makefile for exp_seq folder
 
-TARGET=bdev
+TARGET=cdev
 
 .PHONY: run
 
@@ -13,4 +13,4 @@ adev: adev.cxx
 	./sync_wdir.sh
 
 run:
-	mpirun -v -np 10 -H Aorus39:6,inteli7:4 ./bdev
+	mpirun -v -np 10 -H Aorus39:6,inteli7:4 ./$(TARGET)
