@@ -1,6 +1,6 @@
 # Makefile for exp_seq folder
 
-TARGET=cdev
+TARGET=ddev
 
 .PHONY: run
 
