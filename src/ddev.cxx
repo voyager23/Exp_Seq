@@ -21,7 +21,6 @@
  * 
  */
 
-
 #include <mpi.h>
 #include <iostream>
 #include <cstdlib>
@@ -29,8 +28,9 @@
 #include <array>
 #include <unordered_map>
 #include <climits>
-#include "../../C_C++/ToolKit/MillerRabin//MillerRabin.hxx"
- 
+#include <cstdint>
+ #include "../inc/process.hxx"
+
 #define  MASTER		0
 #define  NODE		1
 
@@ -54,8 +54,6 @@ int main (int argc, char *argv[])
 	MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
 	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
 	
-	// This scatter method leaves the 'residue' elements, at the end of primes' un-scattered
-	
 	if(taskid == 0) {
 		// setup scatter
 		vector<uint64_t> local_p;
@@ -71,9 +69,9 @@ int main (int argc, char *argv[])
 		local_p.data()+r, primes.size() / numtasks, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 		
 		//~ // debug printout
-		//~ cout << taskid << ") received data. ";
-		//~ for(auto i : local_p) cout << i << " ";
-		//~ cout << endl;
+		cout << taskid << ") received data. ";
+		for(auto i : local_p) cout << i << " ";
+		cout << endl;
 		
 		// using the received data calc the value of a[n]
 		
@@ -84,14 +82,14 @@ int main (int argc, char *argv[])
 		MPI_Scatter(primes.data(), primes.size() / numtasks, MPI_UINT64_T,\
 		nodeprime.data(), primes.size() / numtasks, MPI_UINT64_T, 0, MPI_COMM_WORLD);
 				
-		//~ cout << taskid << ") received data.";
-		//~ for(auto i : nodeprime) cout << i << " ";
-		//~ cout << endl;
+		cout << taskid << ") received data.";
+		for(auto i : nodeprime) cout << i << " ";
+		cout << endl;
 		
 		// using the received data calc the value of a[n]
 		
 	}
-	MPI_Finalize();	// Eliminates -> make: *** [makefile:16: run] Error 1
+	MPI_Finalize();	// This eliminates makefile error msg. "make: *** [makefile:16: run] Error 1"
 	return 0;
 }
 

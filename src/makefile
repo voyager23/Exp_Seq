@@ -4,9 +4,12 @@ TARGET=ddev
 
 .PHONY: run
 
-$(TARGET): $(TARGET).cxx
-	mpic++ -std=c++17 -Wall -Wno-unused-variable -g -fpermissive $(TARGET).cxx -o ./$(TARGET)
+$(TARGET): $(TARGET).cxx process.o
+	mpic++ -std=c++17 -Wall -Wno-unused-variable -g -fpermissive $(TARGET).cxx process.o -o ./$(TARGET)
 	./sync_wdir.sh
+	
+process.o: process.cxx
+	mpic++ -std=c++17 -Wall -c process.cxx
 
 adev: adev.cxx
 	mpic++ -std=c++17 -Wall -Wno-unused-variable -g -fpermissive adev.cxx -o ./adev
