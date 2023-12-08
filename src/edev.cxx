@@ -37,13 +37,7 @@
 using namespace std;
 
 vector<uint64_t>primes = {
-100000007,100000037,100000039,100000049,100000073,100000081,100000123,100000127,100000193,100000213};
-
-
-//~ 100000217,100000223,100000231,100000237,100000259,100000267,100000279,100000357,100000379,100000393,\
-//~ 1000000409,1000000411,1000000427,1000000433,1000000439,1000000447,1000000453,1000000459,1000000483,1000000513,\
-//~ 1000000531,1000000579,1000000607,1000000613,1000000637,1000000663,1000000711,\
-//~ 100000399,100000421,100000429,100000463,100000469,100000471,100000493,100000541,100000543};
+	1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007};
 
 //~ Different way to distribute the primes using MPI_Scatterv
 //~ int MPI_Scatterv(const void* buffer_send,
@@ -103,7 +97,7 @@ int main (int argc, char *argv[])
 		MPI_Status status;
 		vector<uint64_t> nodeprime;
 		nodeprime.resize(count[taskid]);
-		int count_recv = nodeprime.size();
+		int count_recv = nodeprime.size();	// set to expected receive count
 		
 		// Receive
 		MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
@@ -111,9 +105,19 @@ int main (int argc, char *argv[])
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
 		// Process
 		
+		const uint64_t n = 1000000;
+		for(uint64_t &p : nodeprime) {
+			uint64_t a = 1;	uint64_t idx = 1;
+			while(idx < n) {
+				idx += 1;
+				a = (6*a*a + 10*a + 3) % p;
+			} // while...
+			cout << "a["<< n << "] mod " << p << " = " << a <<endl;
+		} // for...		
+		
 	}
-	
-	MPI_Finalize();	// This eliminates makefile error msg. "make: *** [makefile:16: run] Error 1"
+	// This step eliminates makefile error msg. "make: *** [makefile:16: run] Error 1"	
+	MPI_Finalize();	
 	return 0;
 }
 
