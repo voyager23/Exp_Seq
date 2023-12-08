@@ -5,7 +5,7 @@ TARGET=edev
 
 $(TARGET): $(TARGET).cxx
 	# Compile
-	mpic++ -std=c++17 -Wall -Wno-unused-variable -g -fpermissive $(TARGET).cxx -o ./$(TARGET)
+	mpic++ -std=c++17 -Wall -Wno-unused-variable -Wno-comment -g -fpermissive $(TARGET).cxx -o ./$(TARGET)
 	# Syncronize
 	./sync_wdir.sh
 

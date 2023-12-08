@@ -59,7 +59,7 @@ vector<uint64_t>primes = {
                  //~ MPI_Comm communicator);
 int main (int argc, char *argv[])
 {
-	const int MAX_PROCS = 6+4+8+8+8+8;	// maximum number of cores available
+	const int MAX_PROCS = 6+4+8+8+8+8;	// maximum number of cores available {42}
 	int  numtasks, taskid, len, partner, message;
 	char hostname[MPI_MAX_PROCESSOR_NAME];
 	MPI_Status status;
@@ -69,19 +69,19 @@ int main (int argc, char *argv[])
 	
 	int count[MAX_PROCS];
 	int displace[MAX_PROCS];
-
-	if(taskid == 0) {
-		// setup scatterv
-		vector<uint64_t> local_p;
-		int c = primes.size() / numtasks;
-		int r = primes.size() % numtasks;
-		// count array
-		for(auto i = 0; i != numtasks; ++i) count[i] = c;	// basic counts for each process
-		for(auto i = 1, residue = r; residue != 0; ++i, --residue) count[i] += 1;
-		// displace array;
-		displace[0] = 0;
-		for(auto i = 0, j = 1; i != numtasks; ++i,++j) displace[j] = count[i] + displace[j-1];
-		
+	
+	// setup scatterv
+	vector<uint64_t> local_p;
+	int c = primes.size() / numtasks;
+	int r = primes.size() % numtasks;
+	// count array
+	for(auto i = 0; i != numtasks; ++i) count[i] = c;	// basic counts for each process
+	for(auto i = 1, residue = r; residue != 0; ++i, --residue) count[i] += 1; // add residues
+	// displace array;
+	displace[0] = 0;
+	for(auto i = 0, j = 1; i != numtasks; ++i,++j) displace[j] = count[i] + displace[j-1];
+	
+	if(taskid == 0) {	
 		// DEBUG
 		cout << primes.size() << " primes." << endl;
 		for(auto i=0; i != numtasks; ++i) cout << count[i] << " ";
@@ -89,24 +89,27 @@ int main (int argc, char *argv[])
 		for(auto i=0; i != numtasks; ++i) cout << displace[i] << " ";
 		cout << endl;	
 		// END DEBUG
-		local_p.resize(1024);
-		int count_recv = 0;
-			cout << "Scatterv in" << endl;
-			
-			cout << 99999 << ") " << MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
-										local_p.data(), count_recv,
-										MPI_UINT64_T, 0, MPI_COMM_WORLD) << endl;
-			cout << "Out Scatterv" << endl;
-
+		
+		// Scatter
+		local_p.resize(count[taskid]);
+		int count_recv = local_p.size();
+		MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
+		local_p.data(), count_recv,
+		MPI_UINT64_T, 0, MPI_COMM_WORLD);
+		// process
 		
 	} else { // Node
+		
 		MPI_Status status;
 		vector<uint64_t> nodeprime;
-		nodeprime.resize(1024);
-		int count_recv = 0;
-		cout << taskid << ") " << MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
-									nodeprime.data(), count_recv,
-									MPI_UINT64_T, 0, MPI_COMM_WORLD) << endl;
+		nodeprime.resize(count[taskid]);
+		int count_recv = nodeprime.size();
+		
+		// Receive
+		MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
+		nodeprime.data(), count_recv,
+		MPI_UINT64_T, 0, MPI_COMM_WORLD);
+		// Process
 		
 	}
 	
