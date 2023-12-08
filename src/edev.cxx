@@ -39,18 +39,7 @@ using namespace std;
 vector<uint64_t>primes = {
 	1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007};
 
-//~ Different way to distribute the primes using MPI_Scatterv
-//~ int MPI_Scatterv(const void* buffer_send,
-                 //~ const int counts_send[],
-                 //~ const int displacements[],
-                 //~ MPI_Datatype datatype_send,
-                 
-                 //~ void* buffer_recv,
-                 //~ int count_recv,
-                 
-                 //~ MPI_Datatype datatype_recv,
-                 //~ int root,
-                 //~ MPI_Comm communicator);
+
 int main (int argc, char *argv[])
 {
 	const int MAX_PROCS = 6+4+8+8+8+8;	// maximum number of cores available {42}
@@ -60,6 +49,10 @@ int main (int argc, char *argv[])
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
 	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
+	// Define a contiguous data_type of uint64_t (taskid, modulus, a[n]);
+	MPI_Datatype ResPack;
+	MPI_Type_contiguous(3, MPI_UINT64_T, &ResPack);	// (taskid, prime, An%prime)
+	MPI_Type_commit(&ResPack);
 	
 	int count[MAX_PROCS];
 	int displace[MAX_PROCS];
@@ -90,12 +83,24 @@ int main (int argc, char *argv[])
 		MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
 		local_p.data(), count_recv,
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
-		// process
+		// process not actioned
+		// Receive and publish
+
+		vector<array<uint64_t,3>> v_results;
+		for(int t = 1; t != numtasks; ++t){
+			array<uint64_t,3> buffer;
+			MPI_Recv(&buffer, 1, ResPack, t, 321, MPI_COMM_WORLD, &status);
+			v_results.push_back(buffer);
+			// cout << "Result Taskid: " << respack[0] << " " << respack[1] << " " << respack[2] << endl;			
+		}
+		for(auto &r : v_results)
+			cout << "result vector " << r[0] << " " << r[1] << " " << r[2] << endl;
 		
 	} else { // Node
 		
 		MPI_Status status;
 		vector<uint64_t> nodeprime;
+		uint64_t respack[3];	// mirror MPI_Type
 		nodeprime.resize(count[taskid]);
 		int count_recv = nodeprime.size();	// set to expected receive count
 		
@@ -106,17 +111,28 @@ int main (int argc, char *argv[])
 		// Process
 		
 		const uint64_t n = 1000000;
+		uint64_t a = 1;
+		uint64_t idx = 1;
 		for(uint64_t &p : nodeprime) {
-			uint64_t a = 1;	uint64_t idx = 1;
 			while(idx < n) {
 				idx += 1;
 				a = (6*a*a + 10*a + 3) % p;
 			} // while...
-			cout << "a["<< n << "] mod " << p << " = " << a <<endl;
-		} // for...		
-		
+			//cout << "a["<< n << "] mod " << p << " = " << a <<endl;
+			// Form the ResPack here
+			respack[0] = taskid;
+			respack[1] = p;
+			respack[2] = a;
+		} // for...
+		// cout << "Taskid: " << respack[0] << " " << respack[1] << " " << respack[2] << endl;
+		// send package to root;
+		// int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
+		MPI_Send(respack, 1, ResPack, 0, 321, MPI_COMM_WORLD);		
 	}
-	// This step eliminates makefile error msg. "make: *** [makefile:16: run] Error 1"	
+	
+	// Clean up.
+	MPI_Type_free(&ResPack);
+	// This step eliminates makefile error msg. "make: *** [makefile:16: run] Error 1"
 	MPI_Finalize();	
 	return 0;
 }
