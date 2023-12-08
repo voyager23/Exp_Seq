@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # Set hosts to syncronise
-#hosts="host144 host143 host142 host141 fedora39"
-
-hosts="inteli7"	# local group
+# hosts="host144 host143 host142 host141 Inteli7"
+hosts="Inteli7"
 
 # Set directory path to syncronise
 dir="/home/mike/Wdir/OpenMpi"
