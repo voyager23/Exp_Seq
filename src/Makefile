@@ -15,7 +15,7 @@ nusrch : new_search.cxx
 .PHONY: run db
 
 run :
-	mpirun -np 8 -H Aorus39:0,Inteli7:0,Node55:8 ./$(TARGET)
+	mpirun -np 18 -H Aorus39:6,Inteli7:6,Node55:8 ./$(TARGET)
 	
 db :
 	gdb $(EXE)
