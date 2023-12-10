@@ -36,14 +36,16 @@
 
 using namespace std;
 
-vector<uint64_t>primes = {	// 20 primes for 6+4+8 cores
-	1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,
-	1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007,1000000007};
+vector<uint64_t>primes = {	// 40 primes for 6+4+8 cores => 18*2 + 4
+1000000007,1000000009,1000000021,1000000033,1000000087,1000000093,1000000097,1000000103,1000000123,1000000181,
+1000000207,1000000223,1000000241,1000000271,1000000289,1000000297,1000000321,1000000349,1000000363,1000000403,
+1000000409,1000000411,1000000427,1000000433,1000000439,1000000447,1000000453,1000000459,1000000483,1000000513,
+1000000531,1000000579,1000000607,1000000613,1000000637,1000000663,1000000711,1000000753,1000000787,1000000801};
 
 
 int main (int argc, char *argv[])
 {
-	const int MAX_PROCS = 6+4+8+8+8+8+8;	// maximum number of cores available {50}
+	const int MAX_PROCS = 6+4+8 + 8 + 8 + 8 + 8;	// maximum number of cores available {50}
 	int  numtasks, taskid, len, partner, message;
 	char hostname[MPI_MAX_PROCESSOR_NAME];
 	MPI_Status status;
@@ -77,7 +79,8 @@ int main (int argc, char *argv[])
 		for(auto i=0; i != numtasks; ++i) cout << displace[i] << " ";
 		cout << endl;	
 		// END DEBUG
-		
+		// Local result storage
+		vector<array<uint64_t,3>> v_results;
 		// Scatter
 		local_p.resize(count[taskid]);
 		int count_recv = local_p.size();
@@ -85,10 +88,24 @@ int main (int argc, char *argv[])
 		local_p.data(), count_recv,
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
 		// process
-		
+		const uint64_t n = 1000000;
+		for(int i = 0; i != count[0]; ++i) {
+			uint64_t a = 1;
+			uint64_t idx = 1;
+			while(idx < n) {
+				idx += 1;
+				a = (6*a*a + 10*a + 3) % primes[i];
+			} // while...
+			//cout << "a["<< n << "] mod " << p << " = " << a <<endl;
+			array<uint64_t,3> buffer;
+			buffer[0] = taskid;
+			buffer[1] = primes[i];
+			buffer[2] = a;
+			v_results.push_back(buffer);
+		} // for...		
 		
 		// Receive and publish
-		vector<array<uint64_t,3>> v_results;
+
 		for(int t = 1; t != numtasks; ++t){
 			array<uint64_t,3> buffer;
 			MPI_Recv(&buffer, 1, ResPack, t, 321, MPI_COMM_WORLD, &status);
@@ -113,9 +130,9 @@ int main (int argc, char *argv[])
 		// Process
 		
 		const uint64_t n = 1000000;
-		uint64_t a = 1;
-		uint64_t idx = 1;
 		for(uint64_t &p : nodeprime) {
+			uint64_t a = 1;
+			uint64_t idx = 1;
 			while(idx < n) {
 				idx += 1;
 				a = (6*a*a + 10*a + 3) % p;
