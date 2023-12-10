@@ -36,16 +36,22 @@
 
 using namespace std;
 
-vector<uint64_t>primes = {	// 40 primes for 6+4+8 cores => 18*2 + 4
+// Global Costants
+
+const int MAX_PROCS = 6+4+8 + 8 + 8 + 8 + 8;	// maximum number of cores available {50}
+
+const uint64_t n = 1000;		// maximum number of iteration to calc. Example 1 n=10^3
+
+const vector<uint64_t>primes = {	// 40 primes for 6+4+8 cores => 18*2 + 4
 1000000007,1000000009,1000000021,1000000033,1000000087,1000000093,1000000097,1000000103,1000000123,1000000181,
 1000000207,1000000223,1000000241,1000000271,1000000289,1000000297,1000000321,1000000349,1000000363,1000000403,
 1000000409,1000000411,1000000427,1000000433,1000000439,1000000447,1000000453,1000000459,1000000483,1000000513,
-1000000531,1000000579,1000000607,1000000613,1000000637,1000000663,1000000711,1000000753,1000000787,1000000801};
+1000000531,1000000579,1000000607,1000000613,1000000637};
 
+//======================================================================
 
 int main (int argc, char *argv[])
 {
-	const int MAX_PROCS = 6+4+8 + 8 + 8 + 8 + 8;	// maximum number of cores available {50}
 	int  numtasks, taskid, len, partner, message;
 	char hostname[MPI_MAX_PROCESSOR_NAME];
 	MPI_Status status;
@@ -71,15 +77,20 @@ int main (int argc, char *argv[])
 	displace[0] = 0;
 	for(auto i = 0, j = 1; i != numtasks; ++i,++j) displace[j] = count[i] + displace[j-1];
 	
-	if(taskid == 0) {	
+	if(taskid == 0) {
+		
 		// DEBUG
 		cout << primes.size() << " primes." << endl;
+		cout << "n = " << n << endl;
+		cout << "Tasks/node: ";
 		for(auto i=0; i != numtasks; ++i) cout << count[i] << " ";
 		cout << endl;
+		cout << "Displacements: ";
 		for(auto i=0; i != numtasks; ++i) cout << displace[i] << " ";
 		cout << endl;	
 		// END DEBUG
-		// Local result storage
+		
+		#// Local result storage
 		vector<array<uint64_t,3>> v_results;
 		// Scatter
 		local_p.resize(count[taskid]);
@@ -88,7 +99,7 @@ int main (int argc, char *argv[])
 		local_p.data(), count_recv,
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
 		// process
-		const uint64_t n = 1000000;
+
 		for(int i = 0; i != count[0]; ++i) {
 			uint64_t a = 1;
 			uint64_t idx = 1;
@@ -106,17 +117,21 @@ int main (int argc, char *argv[])
 		
 		// Receive and publish
 
-		for(int t = 1; t != numtasks; ++t){
+		for(int t = 1; t != numtasks; ++t){ // for each task...
 			array<uint64_t,3> buffer;
-			MPI_Recv(&buffer, 1, ResPack, t, 321, MPI_COMM_WORLD, &status);
-			v_results.push_back(buffer);
-			// cout << "Result Taskid: " << respack[0] << " " << respack[1] << " " << respack[2] << endl;			
+			for(int u = 0; u != count[t]; ++u) { // receive count[t] results
+				MPI_Recv(&buffer, 1, ResPack, t, 321, MPI_COMM_WORLD, &status);
+				v_results.push_back(buffer);	// save to results vector
+			}
 		}
+		// show the received results
 		for(auto &r : v_results)
 			cout << "result vector " << r[0] << " " << r[1] << " " << r[2] << endl;
 		
 	} else { // Node
-		
+		#define BUFSIZE (count[taskid] * 3 * sizeof(MPI_UINT64_T))
+		uint64_t buf[BUFSIZE];
+		MPI_Buffer_attach(buf,BUFSIZE);
 		MPI_Status status;
 		vector<uint64_t> nodeprime;
 		uint64_t respack[3];	// mirror MPI_Type
@@ -129,7 +144,6 @@ int main (int argc, char *argv[])
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
 		// Process
 		
-		const uint64_t n = 1000000;
 		for(uint64_t &p : nodeprime) {
 			uint64_t a = 1;
 			uint64_t idx = 1;
@@ -142,11 +156,12 @@ int main (int argc, char *argv[])
 			respack[0] = taskid;
 			respack[1] = p;
 			respack[2] = a;
+			MPI_Bsend(respack, 1, ResPack, 0, 321, MPI_COMM_WORLD);
 		} // for...
 		// cout << "Taskid: " << respack[0] << " " << respack[1] << " " << respack[2] << endl;
 		// send package to root;
 		// int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
-		MPI_Send(respack, 1, ResPack, 0, 321, MPI_COMM_WORLD);		
+		
 	}
 	
 	// Clean up.
