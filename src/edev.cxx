@@ -43,7 +43,7 @@ vector<uint64_t>primes = {	// 20 primes for 6+4+8 cores
 
 int main (int argc, char *argv[])
 {
-	const int MAX_PROCS = 6+4+8+8+8+8;	// maximum number of cores available {42}
+	const int MAX_PROCS = 6+4+8+8+8+8+8;	// maximum number of cores available {50}
 	int  numtasks, taskid, len, partner, message;
 	char hostname[MPI_MAX_PROCESSOR_NAME];
 	MPI_Status status;
@@ -84,9 +84,10 @@ int main (int argc, char *argv[])
 		MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
 		local_p.data(), count_recv,
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
-		// process not actioned
+		// process
+		
+		
 		// Receive and publish
-
 		vector<array<uint64_t,3>> v_results;
 		for(int t = 1; t != numtasks; ++t){
 			array<uint64_t,3> buffer;
