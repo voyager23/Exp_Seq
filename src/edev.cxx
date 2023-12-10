@@ -48,6 +48,27 @@ const vector<uint64_t>primes = {	// 40 primes for 6+4+8 cores => 18*2 + 4
 1000000409,1000000411,1000000427,1000000433,1000000439,1000000447,1000000453,1000000459,1000000483,1000000513,
 1000000531,1000000579,1000000607,1000000613,1000000637};
 
+void verify_results(vector<array<uint64_t,3>> &vr);
+void verify_results(vector<array<uint64_t,3>> &vr){
+	// each result contains taskid, modulus and a[n]
+	// output line taskid, modulus a[n] {no-match} calculated
+	uint64_t a,idx;
+	for(array<uint64_t,3> &r : vr) {
+		a = 1;	idx = 1;
+		while(idx < n) {
+			idx += 1;
+			a = (6*a*a + 10*a + 3) % r[1];
+		} // while...		
+		cout << "a["<< n << "] mod " << r[1] << " = " << a;
+		if(a == r[2]){
+			cout << " match " << endl;;
+		} else {
+			cout << "no-match " << endl;
+		}
+	}
+}
+
+
 //======================================================================
 
 int main (int argc, char *argv[])
@@ -127,6 +148,9 @@ int main (int argc, char *argv[])
 		// show the received results
 		for(auto &r : v_results)
 			cout << "result vector " << r[0] << " " << r[1] << " " << r[2] << endl;
+		// TODO:
+		// Verify each result by simple search using the prime value and const n
+		verify_results(v_results);
 		
 	} else { // Node
 		#define BUFSIZE (count[taskid] * 3 * sizeof(MPI_UINT64_T))
