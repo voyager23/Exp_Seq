@@ -42,11 +42,12 @@ const int MAX_PROCS = 6+4+8 + 8 + 8 + 8 + 8;	// maximum number of cores availabl
 
 const uint64_t n = 1000;		// maximum number of iteration to calc. Example 1 n=10^3
 
-const vector<uint64_t>primes = {	// 40 primes for 6+4+8 cores => 18*2 + 4
+const vector<uint64_t>primes = {	// 49 primes for 6+4 cores => 10*4 + 9 -> (4,5,5,5,5,5,5,5,5,5)
 1000000007,1000000009,1000000021,1000000033,1000000087,1000000093,1000000097,1000000103,1000000123,1000000181,
 1000000207,1000000223,1000000241,1000000271,1000000289,1000000297,1000000321,1000000349,1000000363,1000000403,
 1000000409,1000000411,1000000427,1000000433,1000000439,1000000447,1000000453,1000000459,1000000483,1000000513,
-1000000531,1000000579,1000000607,1000000613,1000000637};
+1000000531,1000000579,1000000607,1000000613,1000000637,1000000663,1000000711,1000000753,1000000787,1000000801,
+1000000829,1000000861,1000000871,1000000891,1000000901,1000000919,1000000931,1000000933,1000000993};
 
 void verify_results(vector<array<uint64_t,3>> &vr);
 void verify_results(vector<array<uint64_t,3>> &vr){
@@ -120,7 +121,11 @@ int main (int argc, char *argv[])
 		local_p.data(), count_recv,
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
 		// process
-
+		array<uint64_t,3> buffer;
+		buffer[0] = taskid;
+		buffer[1] = 0;	// prime not used
+		buffer[2] = 0;
+		
 		for(int i = 0; i != count[0]; ++i) {
 			uint64_t a = 1;
 			uint64_t idx = 1;
@@ -128,29 +133,16 @@ int main (int argc, char *argv[])
 				idx += 1;
 				a = (6*a*a + 10*a + 3) % primes[i];
 			} // while...
-			//cout << "a["<< n << "] mod " << p << " = " << a <<endl;
-			array<uint64_t,3> buffer;
-			buffer[0] = taskid;
-			buffer[1] = primes[i];
-			buffer[2] = a;
-			v_results.push_back(buffer);
-		} // for...		
+			buffer[2] += a;
+		} // for(i ...		
 		
-		// Receive and publish
+		// Reduce_Sum the process sums
+		uint64_t B = 0;
 
-		for(int t = 1; t != numtasks; ++t){ // for each task...
-			array<uint64_t,3> buffer;
-			for(int u = 0; u != count[t]; ++u) { // receive count[t] results
-				MPI_Recv(&buffer, 1, ResPack, t, 321, MPI_COMM_WORLD, &status);
-				v_results.push_back(buffer);	// save to results vector
-			}
-		}
-		// show the received results
-		for(auto &r : v_results)
-			cout << "result vector " << r[0] << " " << r[1] << " " << r[2] << endl;
-		// TODO:
-		// Verify each result by simple search using the prime value and const n
-		verify_results(v_results);
+		MPI_Reduce( &(buffer[2]), &B, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
+		
+		// Show final sum B;
+		cout << "B = " << B << endl;
 		
 	} else { // Node
 		#define BUFSIZE (count[taskid] * 3 * sizeof(MPI_UINT64_T))
@@ -162,12 +154,14 @@ int main (int argc, char *argv[])
 		nodeprime.resize(count[taskid]);
 		int count_recv = nodeprime.size();	// set to expected receive count
 		
-		// Receive
+		// Receive primes
 		MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
 		nodeprime.data(), count_recv,
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
 		// Process
-		
+		respack[0] = taskid;	// Single send/gather for each node
+		respack[1] = 0;			// prime not used
+		respack[2] = 0;			// local sum
 		for(uint64_t &p : nodeprime) {
 			uint64_t a = 1;
 			uint64_t idx = 1;
@@ -175,18 +169,12 @@ int main (int argc, char *argv[])
 				idx += 1;
 				a = (6*a*a + 10*a + 3) % p;
 			} // while...
-			//cout << "a["<< n << "] mod " << p << " = " << a <<endl;
-			// Form the ResPack here
-			respack[0] = taskid;
-			respack[1] = p;
-			respack[2] = a;
-			MPI_Bsend(respack, 1, ResPack, 0, 321, MPI_COMM_WORLD);
+			// Update the ResPack here
+			respack[2] += a;
 		} // for...
-		// cout << "Taskid: " << respack[0] << " " << respack[1] << " " << respack[2] << endl;
-		// send package to root;
-		// int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag, MPI_Comm comm)
-		
-	}
+		// Reduce_Sum the result package for this node
+		MPI_Reduce( &(respack[2]), NULL, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);			
+	} // else...
 	
 	// Clean up.
 	MPI_Type_free(&ResPack);
