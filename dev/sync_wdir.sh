@@ -2,7 +2,7 @@
 
 # Set hosts to syncronise
 # hosts="host144 host143 host142 host141 Inteli7"
-hosts="Inteli7 Node55"
+# hosts="Inteli7 Node55"
 
 # Set directory path to syncronise
 dir="/home/mike/Wdir/OpenMpi"
