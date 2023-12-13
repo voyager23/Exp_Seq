@@ -15,7 +15,7 @@ millerrabin.o : millerrabin.cxx
 .PHONY: run db
 
 run :
-	mpirun -np 8 -H localhost:8 ./$(TARGET)
+	mpirun -np 1 -H localhost:8 ./$(TARGET)
 	
 db :
 	gdb $(EXE)

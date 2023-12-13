@@ -4,8 +4,11 @@
 	//~ Output TBN
 	
 	// ----------Cyclic search begins here----------
+	
+	const uint64_t block_size = 1000;
 	std::vector<uint64_t> aseq;
 	std::vector<uint64_t> blocks;
+	// Main loop
 	for(auto p : primes) {
 		blocks = {1}; //a[1] = 1. Special case
 		aseq = {1,19,2359,33412879};
@@ -27,7 +30,7 @@
 			a = (6*a*a + 10*a + 3) % p;
 			aseq.push_back(a);
 			i++;
-			if((i % 1000)==1){ 
+			if((i % block_size)==1){ 
 				blocks.push_back(a); // push_back a[nnn001]
 			}
 		}while(aseq.back() != aseq.at(6));	// compare to a[7]
@@ -45,16 +48,16 @@
 		uint64_t r = (n - 7) % order;
 		uint64_t aidx = 7 + r;
 		cout << "index of a[n] = " << aidx << endl;
-		// recover the final answer a[100000] mod p
-		// a[2001] in blocks[2]
-		uint64_t bidx = aidx / 1000;
-		a = blocks[bidx]; // a[2001]
-		i = (bidx * 1000) + 1; // 2001
+		// recover the final answer a[n] mod p
+		uint64_t bidx = aidx / block_size;
+		a = blocks[bidx]; 
+		i = (bidx * block_size) + 1;
 		while(i != (aidx)){
 			a = (6*a*a + 10*a + 3) % p;
 			++i;
 		}// a now has required value
 		cout << "Result a[1000000000] = " << a << endl << endl;
-	}
+	} // for p in primes
+	
 	// ----------Cyclic search ends here----------
 	

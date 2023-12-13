@@ -36,12 +36,7 @@ using namespace std;
 // Declaration
 bool MillerRabin(uint64_t n);
 
-// Global Costants
-const int MAX_PROCS = 6 + 4 + 8 + (8 + 8 + 8 + 8);	// maximum number of cores available {50}
-const uint64_t n = 1e15;		// maximum number of iteration to calc. Example 1 n=10^3
-const uint64_t y = 1e3;
-const uint64_t x = 1e9;
-std::vector<uint64_t> primes;	// Referenced in Thread data block
+
 
 // Definitions
 vector<uint64_t> prime_modulus(uint64_t x, uint64_t y){
@@ -64,16 +59,19 @@ vector<uint64_t> prime_modulus(uint64_t x, uint64_t y){
 
 int main (int argc, char *argv[])
 {
+	// Constants common to all nodes
+	const int MAX_PROCS = 6 + 4 + 8 + (8 + 8 + 8 + 8);	// maximum number of cores available {50}
+	const uint64_t n = 1e15;		// maximum number of iteration to calc. Example 1 n=10^3
+	const uint64_t y = 1e3;
+	const uint64_t x = 1e9;
+	std::vector<uint64_t> primes;	// Referenced in Thread data block
+	
 	int  numtasks, taskid, len, partner, message;
 	char hostname[MPI_MAX_PROCESSOR_NAME];
 	MPI_Status status;
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &taskid);
 	MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
-	// Define a contiguous data_type of uint64_t (taskid, modulus, a[n]);
-	MPI_Datatype ResPack;
-	MPI_Type_contiguous(3, MPI_UINT64_T, &ResPack);	// (taskid, prime, An%prime)
-	MPI_Type_commit(&ResPack);
 	
 	int count[MAX_PROCS];
 	int displace[MAX_PROCS];
@@ -108,6 +106,7 @@ int main (int argc, char *argv[])
 		
 		#// Local result storage
 		vector<array<uint64_t,3>> v_results;
+		
 		// Scatter
 		local_p.resize(count[taskid]);
 		int count_recv = local_p.size();
@@ -116,38 +115,82 @@ int main (int argc, char *argv[])
 			MPI_UINT64_T, 0, MPI_COMM_WORLD);
 			
 		// master node process primes
-		array<uint64_t,3> buffer;
-		buffer[0] = taskid;
-		buffer[1] = 0;	// prime not used
-		buffer[2] = 0;
+		uint64_t root_B = 0;
+	
+		// ----------Cyclic Root search begins here----------
 		
-		for(int i = 0; i != count[0]; ++i) {
-			uint64_t a = 1;
-			uint64_t idx = 1;
-			while(idx < n) {
-				idx += 1;
-				a = (6*a*a + 10*a + 3) % primes[i];
-			} // while...
-			buffer[2] += a;
-		} // for(i ...		
+		const uint64_t block_size = 1000;
+		std::vector<uint64_t> aseq;
+		std::vector<uint64_t> blocks;
+		// Main loop
+		for(auto p : primes) {
+			blocks = {1}; //a[1] = 1. Special case
+			aseq = {1,19,2359,33412879};
+			uint64_t a = 33412879;
+			uint64_t i = 4;
+			// calc and push a[5]
+			a = (6*a*a + 10*a + 3) % p;
+			++i;
+			aseq.push_back(a);
+			// calc and push a[6]
+			a = (6*a*a + 10*a + 3) % p;
+			++i;
+			aseq.push_back(a);
+			// calc and push a[7]
+			a = (6*a*a + 10*a + 3) % p;
+			++i;
+			aseq.push_back(a);	// Using a[7] as block start value
+			do {
+				a = (6*a*a + 10*a + 3) % p;
+				aseq.push_back(a);
+				i++;
+				if((i % block_size)==1){ 
+					blocks.push_back(a); // push_back a[nnn001]
+				}
+			}while(aseq.back() != aseq.at(6));	// compare to a[7]
+			
+			//~ for(auto b = aseq.begin(); b != aseq.begin() + 7; ++b)   cout << *b << " ";
+			//~ cout << "  <>  ";
+			//~ for(auto c = aseq.rbegin(); c != aseq.rbegin() + 7; ++c) cout << *c << " ";
+			
+			cout << "size: " << aseq.size();
+			cout << "  order:" << aseq.size() - 7 << "  modulus:" << p;
+			cout << "  blocks:" << blocks.size() << endl;
+			// based on these variables find the index of a[n] 
+			// contained in the finite field of size 'order'
+			uint64_t order = aseq.size() - 7;
+			uint64_t r = (n - 7) % order;
+			uint64_t aidx = 7 + r;
+			cout << "index of a[n] = " << aidx << endl;
+			// recover the final answer a[n] mod p
+			uint64_t bidx = aidx / block_size;
+			a = blocks[bidx]; 
+			i = (bidx * block_size) + 1;
+			while(i != (aidx)){
+				a = (6*a*a + 10*a + 3) % p;
+				++i;
+			}// a now has required value
+			root_B += a;
+			cout << "Result a[1000000000] = " << a << endl << endl;
+		} // for p in primes
 		
-		// Reduce_Sum the process sums
+		// ----------Cyclic search ends here----------
+	
+
+		
+		// Reduce_Sum the local sums
 		uint64_t B = 0;
 
-		MPI_Reduce( &(buffer[2]), &B, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
+		MPI_Reduce( &root_B, &B, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
 		
 		// Show final sum B;
-		cout << "B = " << B << endl;
+		cout << "Final result B = " << B << endl;
 		
 	} else { // Node
-		#define BUFSIZE (count[taskid] * 3 * sizeof(MPI_UINT64_T))
-		uint64_t buf[BUFSIZE];
-		MPI_Buffer_attach(buf,BUFSIZE);
-		MPI_Status status;
+		// Nodes expect to receive a vector of primes which is stored in nodeprime
 		vector<uint64_t> nodeprime;
-		uint64_t respack[3];	// mirror MPI_Type
-		nodeprime.resize(count[taskid]);
-		int count_recv = nodeprime.size();	// set to expected receive count
+		nodeprime.resize(count[taskid]);	// make space for the primes
+		int count_recv = count[taskid];		// set to expected receive count
 		
 		// Receive primes
 		MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
@@ -155,27 +198,71 @@ int main (int argc, char *argv[])
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
 		
 		// Work Node Process primes
-		respack[0] = taskid;	// Single send/gather for each node
-		respack[1] = 0;			// prime not used
-		respack[2] = 0;			// local sum
-		for(uint64_t &p : nodeprime) {
-			uint64_t a = 1;
-			uint64_t idx = 1;
-			while(idx < n) {
-				idx += 1;
+		uint64_t local_B = 0;
+	
+		// ----------Cyclic Node search begins here----------
+		
+		const uint64_t block_size = 1000;
+		std::vector<uint64_t> aseq;
+		std::vector<uint64_t> blocks;
+		// Main loop
+		for(auto p : nodeprime) {
+			blocks = {1}; //a[1] = 1. Special case
+			aseq = {1,19,2359,33412879};
+			uint64_t a = 33412879;
+			uint64_t i = 4;
+			// calc and push a[5]
+			a = (6*a*a + 10*a + 3) % p;
+			++i;
+			aseq.push_back(a);
+			// calc and push a[6]
+			a = (6*a*a + 10*a + 3) % p;
+			++i;
+			aseq.push_back(a);
+			// calc and push a[7]
+			a = (6*a*a + 10*a + 3) % p;
+			++i;
+			aseq.push_back(a);	// Using a[7] as block start value
+			do {
 				a = (6*a*a + 10*a + 3) % p;
-			} // while...
-			// Update the ResPack here
-			respack[2] += a;
-		} // for...
+				aseq.push_back(a);
+				i++;
+				if((i % block_size)==1){ 
+					blocks.push_back(a); // push_back a[nnn001]
+				}
+			}while(aseq.back() != aseq.at(6));	// compare to a[7]
+
+			cout << "size: " << aseq.size();
+			cout << "  order:" << aseq.size() - 7 << "  modulus:" << p;
+			cout << "  blocks:" << blocks.size() << endl;
+			// based on these variables find the index of a[n] 
+			// contained in the finite field of size 'order'
+			uint64_t order = aseq.size() - 7;
+			uint64_t r = (n - 7) % order;
+			uint64_t aidx = 7 + r;
+			cout << "index of a[n] = " << aidx << endl;
+			// recover the final answer a[n] mod p
+			uint64_t bidx = aidx / block_size;
+			a = blocks[bidx]; 
+			i = (bidx * block_size) + 1;
+			while(i != (aidx)){
+				a = (6*a*a + 10*a + 3) % p;
+				++i;
+			}// a now has required value
+			local_B += a;
+			cout << "Result a[1000000000] = " << a << endl << endl;
+		} // for p in primes
+		
+		// ----------Cyclic search ends here----------
+	
 		// Reduce_Sum the result package for this node
-		MPI_Reduce( &(respack[2]), NULL, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);			
+		MPI_Reduce( &local_B, NULL, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
+					
 	} // else Node...
 	
-	// Clean up.
-	MPI_Type_free(&ResPack);
-	// This step eliminates makefile error msg. "make: *** [makefile:16: run] Error 1"
-	MPI_Finalize();	
+	// Required clean up.
+	MPI_Finalize();
+	// Required by C++ standard
 	return 0;
 }
 
