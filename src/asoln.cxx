@@ -29,12 +29,12 @@
 #include <unordered_map>
 #include <climits>
 #include <cstdint>
- #include "../../Vault/ToolKit/MillerRabin/MillerRabin.hxx"
-
-#define  MASTER		0
-#define  NODE		1
 
 using namespace std;
+//~ using u64=uint64_t;
+
+// Declaration
+bool MillerRabin(uint64_t n);
 
 // Global Costants
 const int MAX_PROCS = 6 + 4 + 8 + (8 + 8 + 8 + 8);	// maximum number of cores available {50}
@@ -44,11 +44,11 @@ const uint64_t x = 1e9;
 std::vector<uint64_t> primes;	// Referenced in Thread data block
 
 // Definitions
-vector<u64> prime_modulus(u64 x, u64 y){
+vector<uint64_t> prime_modulus(uint64_t x, uint64_t y){
 	// approx 25 seconds for x=10^9 and y=10^7 returns 482449 values
-	std::vector<u64> primes = {};
+	std::vector<uint64_t> primes = {};
 	if((x % 2)==0) x += 1; // test odd values
-	for(u64 p = x; p <= x+y; p+=2) {
+	for(uint64_t p = x; p <= x+y; p+=2) {
 		if (MillerRabin(p)) {
 			if(p <= UINT_MAX){
 				primes.push_back(p);
@@ -112,9 +112,10 @@ int main (int argc, char *argv[])
 		local_p.resize(count[taskid]);
 		int count_recv = local_p.size();
 		MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
-		local_p.data(), count_recv,
-		MPI_UINT64_T, 0, MPI_COMM_WORLD);
-		// process
+			local_p.data(), count_recv,
+			MPI_UINT64_T, 0, MPI_COMM_WORLD);
+			
+		// master node process primes
 		array<uint64_t,3> buffer;
 		buffer[0] = taskid;
 		buffer[1] = 0;	// prime not used
@@ -152,7 +153,8 @@ int main (int argc, char *argv[])
 		MPI_Scatterv(primes.data(), count, displace, MPI_UINT64_T,
 		nodeprime.data(), count_recv,
 		MPI_UINT64_T, 0, MPI_COMM_WORLD);
-		// Process
+		
+		// Work Node Process primes
 		respack[0] = taskid;	// Single send/gather for each node
 		respack[1] = 0;			// prime not used
 		respack[2] = 0;			// local sum
@@ -168,7 +170,7 @@ int main (int argc, char *argv[])
 		} // for...
 		// Reduce_Sum the result package for this node
 		MPI_Reduce( &(respack[2]), NULL, 1, MPI_UINT64_T, MPI_SUM, 0, MPI_COMM_WORLD);			
-	} // else...
+	} // else Node...
 	
 	// Clean up.
 	MPI_Type_free(&ResPack);

@@ -4,12 +4,13 @@ TARGET=asoln
 
 $(TARGET): $(TARGET).cxx
 	# Compile
-	mpic++ -std=c++17 -Wall -Wno-unused-variable -Wno-comment -g -fpermissive $(TARGET).cxx -o ./$(TARGET)
+	mpic++ -std=c++17 -Wall -Wno-unused-variable -Wno-comment -g -fpermissive $(TARGET).cxx millerrabin.o -o ./$(TARGET)
 	# Syncronize
 	# ./sync_wdir.sh
 
-nusrch : new_search.cxx
-	g++ -std=c++17 -g new_search.cxx -o ./nusrch
+millerrabin.o : millerrabin.cxx
+	g++ -c millerrabin.cxx -o millerrabin.o
+
 
 .PHONY: run db
 
