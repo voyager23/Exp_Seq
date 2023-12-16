@@ -30,15 +30,12 @@ const uint64_t taskid = 8;
 
 void finite_field(std::vector<uint64_t> &nodeprime)
 {
-	// Version: 14.12.2023 18:22:21
-	//TEST
-	typedef std::pair< uint64_t *, bool> Rval;
-	
-	// END
+	// Version: 15.12.2023 17:16:03
 	
 	uint64_t a6, a7, a, idx, local_b=0;
 	const uint64_t block_size = 1000;	// record progress every 1000 values
 	std::unordered_map<uint64_t,uint64_t> progress;
+	std::unordered_map<uint64_t,uint64_t>::iterator iter;
 	
 	for(uint64_t p : nodeprime) {
 		// Given values for a[3]
@@ -70,7 +67,7 @@ void finite_field(std::vector<uint64_t> &nodeprime)
 			exit(1);
 		} else { // Match: a[idx] => a7
 			uint64_t order = idx - 7;
-			uint64_t residue = (n - 6) % p;
+			uint64_t residue = (n - 6) % order;
 			int64_t offset = residue - 1;
 			if(offset < 0) offset += order;
 			uint64_t req_idx = 7 + offset;
@@ -79,7 +76,14 @@ void finite_field(std::vector<uint64_t> &nodeprime)
 			if(idx==0) {
 				idx = 3;  // progress has (3,2359)
 			} else {
-				a = (*(progress.find(idx))).second;
+				iter = progress.find(idx);
+				if(iter == progress.end()) {
+					cout<<endl;
+				} else {
+					cout << endl;
+				}
+				//a = std::get<1>(rv);
+				//a = (*(progress.find(idx))).second;
 			}
 			while(idx != req_idx){
 				a = (6*a*a + 10*a + 3) % p;
@@ -87,7 +91,7 @@ void finite_field(std::vector<uint64_t> &nodeprime)
 			}
 			// a now has the value of a{n}
 			local_b += a;
-			cout << "a[" << n << "] mod " << p << " = a " << endl;
+			cout << "a[" << n << "] mod " << p << " = " << a << endl;
 		} // Match: a[idx] => a7
 		
 	} // for prime:nodename				
