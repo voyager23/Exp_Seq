@@ -25,7 +25,7 @@
 #include "finite_field.hxx"
 
 // Dummy values
-const uint64_t n = 1e6;
+const uint64_t n = 1e15;
 const uint64_t taskid = 8;
 
 void finite_field(std::vector<uint64_t> &nodeprime)
@@ -71,20 +71,22 @@ void finite_field(std::vector<uint64_t> &nodeprime)
 			int64_t offset = residue - 1;
 			if(offset < 0) offset += order;
 			uint64_t req_idx = 7 + offset;
+			
 			// refer to progress map
-			idx = (req_idx / block_size) * block_size;
-			if(idx==0) {
-				idx = 3;  // progress has (3,2359)
+			idx = (req_idx / block_size) * block_size;			
+			if(idx==0) {	// special case
+				idx = 3;	// progress has (3,2359)
 			} else {
 				iter = progress.find(idx);
 				if(iter == progress.end()) {
-					cout<<endl;
-				} else {
-					cout << endl;
+					cout<<"entry not found in progress"<<endl;
+					exit(1);
 				}
-				//a = std::get<1>(rv);
-				//a = (*(progress.find(idx))).second;
+
 			}
+			// reset value of a from progress map			
+			a = (*iter).second;			
+			// ----------------
 			while(idx != req_idx){
 				a = (6*a*a + 10*a + 3) % p;
 				++idx;
@@ -94,12 +96,20 @@ void finite_field(std::vector<uint64_t> &nodeprime)
 			cout << "a[" << n << "] mod " << p << " = " << a << endl;
 		} // Match: a[idx] => a7
 		
-	} // for prime:nodename				
+	} // for prime:nodename
+	cout << "local_b = " << local_b << endl;			
 }
 
 int main()
 {
-	std::vector<uint64_t> primes = {10007,17623,10891,21589,99901,99991};
+	
+	std::vector<uint64_t> primes = 
+	{ 1000000007,1000000009,1000000021,1000000033,1000000087,1000000093,1000000097,1000000103,1000000123,1000000181,
+	1000000207,1000000223,1000000241,1000000271,1000000289,1000000297,1000000321,1000000349,1000000363,1000000403,
+	1000000409,1000000411,1000000427,1000000433,1000000439,1000000447,1000000453,1000000459,1000000483,1000000513,
+	1000000531,1000000579,1000000607,1000000613,1000000637,1000000663,1000000711,1000000753,1000000787,1000000801,
+	1000000829,1000000861,1000000871,1000000891,1000000901,1000000919,1000000931,1000000933,1000000993 };
+	
 	finite_field(primes);
 	
 }
