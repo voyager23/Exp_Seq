@@ -36,7 +36,7 @@
 	#include <cstdint>
 	#include <utility>
 	using namespace std;
-	void finite_field(std::vector<uint64_t> &nodeprime);
+	uint64_t finite_field(std::vector<uint64_t> &nodeprime);
 	
 #endif
 

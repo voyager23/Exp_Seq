@@ -28,9 +28,9 @@
 const uint64_t n = 1e15;
 const uint64_t taskid = 8;
 
-void finite_field(std::vector<uint64_t> &nodeprime)
+uint64_t finite_field(std::vector<uint64_t> &nodeprime)
 {
-	// Version: 15.12.2023 17:16:03
+	// Version: 16.12.2023 17:12:33
 	
 	uint64_t a6, a7, a, idx, local_b=0;
 	const uint64_t block_size = 1000;	// record progress every 1000 values
@@ -97,7 +97,8 @@ void finite_field(std::vector<uint64_t> &nodeprime)
 		} // Match: a[idx] => a7
 		
 	} // for prime:nodename
-	cout << "local_b = " << local_b << endl;			
+	cout << "local_b = " << local_b << endl;
+	return local_b;			
 }
 
 int main()
@@ -110,6 +111,6 @@ int main()
 	1000000531,1000000579,1000000607,1000000613,1000000637,1000000663,1000000711,1000000753,1000000787,1000000801,
 	1000000829,1000000861,1000000871,1000000891,1000000901,1000000919,1000000931,1000000933,1000000993 };
 	
-	finite_field(primes);
+	cout << finite_field(primes) << endl;
 	
 }
