@@ -1,6 +1,7 @@
 # Makefile for Exp_Seq/src folder
 
-TARGET=asoln
+TARGET=mpi_solution
+PROCS ?= 12
 
 $(TARGET): $(TARGET).cxx
 	# Compile
@@ -11,11 +12,10 @@ $(TARGET): $(TARGET).cxx
 millerrabin.o : millerrabin.cxx
 	g++ -c millerrabin.cxx -o millerrabin.o
 
-
 .PHONY: run db
 
 run :
-	mpirun -np 1 -H localhost:8 ./$(TARGET)
+	mpirun -np $(PROCS) -H localhost:12 ./$(TARGET)
 	
 db :
 	gdb $(EXE)
