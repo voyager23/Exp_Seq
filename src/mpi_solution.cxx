@@ -18,7 +18,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
  * 
- * 
+ * 492. 242586962923928
  */
 
 #include <mpi.h>
@@ -72,10 +72,10 @@ uint64_t finite_field(std::vector<uint64_t> &nodeprime)
 	const uint64_t block_size = 1000;	// record progress every 1000 values
 	std::unordered_map<uint64_t,uint64_t> progress;
 	std::unordered_map<uint64_t,uint64_t>::iterator iter;
-	
+	uint64_t processed = 0;
 	for(uint64_t p : nodeprime) {
 			
-		cout << "Modulus:" << p << endl;
+		//cout << "Modulus:" << p << endl;
 		
 		// Move fwd to a[block_size]
 		a = 2359; idx = 3;	
@@ -135,10 +135,14 @@ uint64_t finite_field(std::vector<uint64_t> &nodeprime)
 			// a now has the value of a{n}
 			local_b += a;
 			// << "a[" << n << "] mod " << p << " = " << a << endl;
+			processed += 1;
+			if (processed % 100 == 0){
+				cout << taskid << ": " << processed << "/" << nodeprime.size() << endl;
+			}
 		} // Match: a[idx] => a7
 		
 	} // for prime:nodename
-	cout << "local_b = " << local_b << endl;
+	cout << taskid <<") local_b = " << local_b << endl;
 	return local_b;			
 }
 
