@@ -39,7 +39,7 @@ uint64_t finite_field(std::vector<uint64_t> &nodeprime);
 // Constants common to all nodes
 const int MAX_PROCS = 6 + 4 + 8 + (8 + 8 + 8 + 8);	// maximum number of cores available {50}
 const uint64_t n = 1e15;		// maximum number of iteration to calc. Example 1 n=10^3
-const uint64_t y = 1e3;
+const uint64_t y = 1e6;
 const uint64_t x = 1e9;
 // Variable common to all nodes
 int taskid;
@@ -64,52 +64,54 @@ vector<uint64_t> prime_modulus(uint64_t x, uint64_t y){
 
 uint64_t finite_field(std::vector<uint64_t> &nodeprime)
 {
-	// Version: 16.12.2023 17:12:33
+	// Version: 19.12.2023 14:09
+	// Modify the reference point to a[1000]. This seems to allow all moduli
+	// to return a cycle.
 	
-	uint64_t a6, a7, a, idx, local_b=0;
+	uint64_t aRef, iRef, a, idx, local_b=0;
 	const uint64_t block_size = 1000;	// record progress every 1000 values
 	std::unordered_map<uint64_t,uint64_t> progress;
 	std::unordered_map<uint64_t,uint64_t>::iterator iter;
 	
 	for(uint64_t p : nodeprime) {
-		// Given values for a[3]
-		a = 2359; idx = 3;
-		// calc a[4]
-		a = (6*a*a + 10*a + 3) % p;
-		++idx;
-		// calc a[5]
-		a = (6*a*a + 10*a + 3) % p;
-		++idx;
+			
+		cout << "Modulus:" << p << endl;
 		
-		// calc and save a[6]
-		a6 = (6*a*a + 10*a + 3) % p;
-		++idx;
-		// calc and save a[7]
-		a7 = (6*a6*a6 + 10*a6 + 3) % p;
-		++idx;
+		// Move fwd to a[block_size]
+		a = 2359; idx = 3;	
+		do {
+			a = (6*a*a + 10*a + 3) % p;
+			idx += 1;
+		}while(idx != block_size);
 		
-		// index and a7 valid. Recursively calc values for (a mod p) until a match is found.
-		a = a7;
+		aRef = a;	//Reference value
+		
+		// Save first map entry here - map.emplace(1000, aRef)
 		progress.clear();
-		progress.emplace(3,2359);
+		progress.emplace(3,2359);	// cover case where reset idx = 0
+		progress.emplace(block_size, aRef);
+		
+		// Search forward for matching value to aRef
+		
 		do {
 			a = (6*a*a + 10*a + 3) % p;
 			if (((++idx) % block_size) == 0) { 
 				progress.emplace(idx,a); //  progress has (4000, a) etc
-				//cout << idx << " " << a << endl;
 			}
 			
-		} while ((a != a7)&&(idx <= n));
+		} while ((a != aRef)&&(idx <= n));
 		
 		if(idx > n){
 			std::cout<<"Error: idx > n."<< endl;			
 			exit(1);
-		} else { // Match: a[idx] => a7
-			uint64_t order = idx - 7;
-			uint64_t residue = (n - 6) % order;
+		} 
+		else 
+		{ // Match: a[idx] => aRef
+			uint64_t order = idx - block_size;
+			uint64_t residue = (n - block_size + 1) % order;	// corrected this line
 			int64_t offset = residue - 1;
 			if(offset < 0) offset += order;
-			uint64_t req_idx = 7 + offset;
+			uint64_t req_idx = block_size + offset;
 			
 			// refer to progress map
 			idx = (req_idx / block_size) * block_size;			
@@ -132,7 +134,7 @@ uint64_t finite_field(std::vector<uint64_t> &nodeprime)
 			}
 			// a now has the value of a{n}
 			local_b += a;
-			cout << "a[" << n << "] mod " << p << " = " << a << endl;
+			// << "a[" << n << "] mod " << p << " = " << a << endl;
 		} // Match: a[idx] => a7
 		
 	} // for prime:nodename

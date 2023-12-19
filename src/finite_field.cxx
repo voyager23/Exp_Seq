@@ -58,10 +58,12 @@ uint64_t finite_field(std::vector<uint64_t> &nodeprime)
 		a = a7;
 		progress.clear();
 		progress.emplace(3,2359);
+		
 		do {
 			a = (6*a*a + 10*a + 3) % p;
 			if (((++idx)% block_size) == 0) progress.emplace(idx,a); //  progress has (4000, a) etc
 		} while ((a != a7)&&(idx <= n));
+		
 		if(idx > n){
 			std::cout<<"Error: idx > n in taskid: " << taskid << endl;
 			exit(1);
@@ -110,6 +112,8 @@ int main()
 	1000000409,1000000411,1000000427,1000000433,1000000439,1000000447,1000000453,1000000459,1000000483,1000000513,
 	1000000531,1000000579,1000000607,1000000613,1000000637,1000000663,1000000711,1000000753,1000000787,1000000801,
 	1000000829,1000000861,1000000871,1000000891,1000000901,1000000919,1000000931,1000000933,1000000993 };
+	
+	primes = {1000000007};	//debug value only
 	
 	cout << finite_field(primes) << endl;
 	

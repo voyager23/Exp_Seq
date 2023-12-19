@@ -1,7 +1,7 @@
 # Makefile for Exp_Seq/src folder
 
 TARGET=mpi_solution
-PROCS ?= 12
+PROCS ?= 1
 
 $(TARGET): $(TARGET).cxx
 	# Compile
